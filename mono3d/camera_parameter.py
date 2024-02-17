@@ -132,12 +132,14 @@ class CameraParameter:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(str(output_path), fourcc, fps, (frame_width, frame_height))
 
-        for _ in trange(total_frames, desc="Undistorting frames", bar_format="{l_bar}{bar:10}{r_bar}"):
+        for i in trange(total_frames, desc="Undistorting frames:", leave=False):
             # Read a frame from the video
             ret, frame = cap.read()
 
-            # Break the loop if the video is finished
+            # Break the loop if unable to read the next frame
             if not ret:
+                print(f'WARNING: Read frame failed at {i}, total frames: {total_frames}.'
+                      f'If video is not corrupted, please try to convert the video to mp4 again with, e.g., ffmpeg.')
                 break
 
             # Undistort the frame

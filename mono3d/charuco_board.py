@@ -195,6 +195,10 @@ class CharucoBoard:
             CameraParameter: The camera calibration results.
         """
 
+        if not detections:
+            print("WARNING: camera calibration receives no detections, returning zero matrix.")
+            return CameraParameter(intrinsic_mat=np.zeros((3, 3)), distortion_coeffs=np.zeros((5, 1)))
+
         all_corners_flatten: List[npt.NDArray[Any]] = []
         all_ids_flatten: List[npt.NDArray[Any]] = []
 
