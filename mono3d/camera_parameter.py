@@ -41,12 +41,14 @@ class CameraParameter:
             distortion_coeffs=self.distortion_coeffs,
         )
 
-    def load_from(self, file_path: Union[str, Path]):
+    @staticmethod
+    def load_from(file_path: Union[str, Path]) -> "CameraParameter":
         """ Load camera parameters from a file """
         data = np.load(str(file_path))
-        self.intrinsic_mat = data['intrinsic_mat']
-        self.distortion_coeffs = data['distortion_coeffs']
-        return self
+        return CameraParameter(
+            intrinsic_mat=data["intrinsic_mat"],
+            distortion_coeffs=data["distortion_coeffs"],
+        )
 
     @property
     def K(self) -> npt.NDArray[np.float64]:
