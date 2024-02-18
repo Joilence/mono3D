@@ -16,7 +16,7 @@ def charuco_board_image() -> npt.NDArray[np.uint8]:
     """
     Fixture to load the charuco board image
     """
-    return cv2.imread("images/charuco_board.jpg")
+    return cv2.imread("tests/images/charuco_board.jpg")
 
 
 @pytest.fixture
@@ -33,6 +33,22 @@ def charuco_board() -> CharucoBoard:
     Fixture to create a CharucoBoard instance
     """
     return CharucoBoard()
+
+
+@pytest.fixture
+def detection_answer_dir() -> Path:
+    """
+    Fixture to answer directory for the detection results
+    """
+    return Path("tests/images/cam_calib_charuco_images/detection_answers")
+
+
+@pytest.fixture
+def detections(detection_answer_dir) -> Iterable[CharucoBoardDetection]:
+    """
+    Fixture to load the charuco board image
+    """
+    return [CharucoBoardDetection.load_from(file) for file in detection_answer_dir.glob("*.npz")]
 
 
 @pytest.mark.parametrize(
@@ -86,6 +102,7 @@ def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: n
                             [9], [10], [11], [12], [13], [14], [15], [16],
                             [17], [18], [19], [20], [21], [22], [23], [24],
                             [25], [26], [27], [28], [29], [32], [33]])
+    assert charuco_board_image is not None, "Failed on happy path - charuco_board_image should not be None"
 
     # Act
     n_charuco_corners, detection = charuco_board.detect(charuco_board_image)
@@ -100,12 +117,16 @@ def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: n
         f"Failed on happy path - charuco_ids should be {charuco_ids}, got {detection.charuco_ids}"
 
 
-def test_detect_calibration_images(charuco_board: CharucoBoard, calibration_image_paths: Iterable[Path]):
+def test_detect_calibration_images(
+        charuco_board: CharucoBoard,
+        calibration_image_paths: Iterable[Path],
+        detection_answer_dir: Path,
+):
     # Arrange
     result_dir = Path("tests/images/cam_calib_charuco_images/detection_results")
     result_dir.mkdir(exist_ok=True)
 
-    answer_dir = Path("tests/images/cam_calib_charuco_images/detection_answers")
+    answer_dir = detection_answer_dir
     assert answer_dir.exists(), f"Failed on happy path - answer_dir {answer_dir} does not exist"
 
     for image_path in calibration_image_paths:

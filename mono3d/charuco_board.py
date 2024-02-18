@@ -1,7 +1,7 @@
 """ CharucoBoard class compatible with both OpenCV above and below 4.6.0 """
 
 from pathlib import Path
-from typing import Optional, Tuple, List, Any
+from typing import Optional, Tuple, List, Any, Iterable
 
 import cv2
 import numpy as np
@@ -128,7 +128,8 @@ class CharucoBoard:
         )
 
         # TODO: Do subpix on charuco corners
-        n_charuco_corners = len(charuco_corners)
+        n_charuco_corners = len(charuco_corners)  # TODO: is returning n_charuco_corners necessary?
+
         return n_charuco_corners, CharucoBoardDetection(
             aruco_marker_corners=aruco_corners,
             aruco_marker_ids=aruco_ids,
@@ -170,7 +171,8 @@ class CharucoBoard:
 
     def calibrate_camera(
             self,
-            detections: List[Tuple[npt.NDArray[np.uint8], CharucoBoardDetection]]
+            image_size: Tuple[int, ...],
+            detections: Iterable[CharucoBoardDetection],
     ) -> CameraParameter:
         """
         Calibrates the camera using Charuco detections.
@@ -180,24 +182,22 @@ class CharucoBoard:
         as a CameraParameter object.
 
         Args:
-            detections (List[Tuple[npt.NDArray[np.uint8], CharucoBoardDetection]]): A list of image and
-                marker detection tuples.
+            image_size (Tuple[int, ...]): The size of the image used for calibration.
+            detections (Iterable[CharucoBoardDetection]): The Charuco board detections.
 
         Returns:
             CameraParameter: The camera calibration results.
         """
 
         if not detections:
+            # TODO: return None
             print("WARNING: camera calibration receives no detections, returning zero matrix.")
             return CameraParameter(intrinsic_mat=np.zeros((3, 3)), distortion_coeffs=np.zeros((5, 1)))
 
         all_corners_flatten: List[npt.NDArray[Any]] = []
         all_ids_flatten: List[npt.NDArray[Any]] = []
 
-        # take shape from the first image of the first detection pair
-        image_size = detections[0][0].shape[:2]
-
-        for _, detection in detections:
+        for detection in detections:
             if detection.charuco_corners is None or detection.charuco_ids is None:
                 continue
             all_corners_flatten.append(detection.charuco_corners)
@@ -294,10 +294,10 @@ if __name__ == "__main__":
     test_calib_image_dir = Path("../tests/images/cam_calib_charuco_images")
     test_calib_image_paths = list(test_calib_image_dir.glob("*.jpg"))
 
-    detections: List[Tuple[npt.NDArray[np.uint8], CharucoBoardDetection]] = []
+    detections: List[CharucoBoardDetection] = []
     write_dir = test_calib_image_dir / "plotted"
     write_dir.mkdir(exist_ok=True)
-    for image_path in tqdm(test_calib_image_paths, desc="Calibrating"):
+    for image_path in tqdm(test_calib_image_paths, desc="Detecting charuco corners:"):
         image = cv2.imread(str(image_path))
         n_corners, detection = board.detect(image)
         if detection is None:
@@ -307,9 +307,10 @@ if __name__ == "__main__":
         # write to file
         cv2.imwrite(str(write_dir / f"{image_path.stem}.plotted.jpg"), plotted)
 
-        detections.append((image, detection))
+        detections.append(detection)
 
-    calibration = board.calibrate_camera(detections)
+    image_shape = cv2.imread(str(test_calib_image_paths[0])).shape[:2]
+    calibration = board.calibrate_camera(image_shape, detections)
 
     np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
     print("Camera matrix:")
