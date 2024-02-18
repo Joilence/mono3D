@@ -50,6 +50,7 @@ class CharucoBoard:
             n_vertical_squares: int = 10,
             board_square_length: float = 55.0,
             aruco_marker_length: float = 43.0,
+            use_board_legacy_pattern: bool = True,
     ):
         if aruco_dict is None:  # TODO: Necessary? Is cv2.aruco.Dictionary mutable?
             self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
@@ -77,6 +78,9 @@ class CharucoBoard:
                 markerLength=self.aruco_marker_length,
                 dictionary=self.aruco_dict
             )
+            if use_board_legacy_pattern:
+                tqdm.write("WARNING: Using the legacy CharucoBoard pattern.")
+                self.board.setLegacyPattern(use_board_legacy_pattern)
             self.aruco_detector = cv2.aruco.ArucoDetector(
                 dictionary=self.aruco_dict,
                 detectorParams=cv2.aruco.DetectorParameters()
