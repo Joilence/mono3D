@@ -16,39 +16,9 @@ def charuco_board_image() -> npt.NDArray[np.uint8]:
     """
     Fixture to load the charuco board image
     """
-    return cv2.imread("tests/images/charuco_board.jpg")
-
-
-@pytest.fixture
-def calibration_image_paths() -> Iterable[Path]:
-    """
-    Fixture to load the charuco board image
-    """
-    return Path("tests/images/cam_calib_charuco_images").glob("*.jpg")
-
-
-@pytest.fixture
-def charuco_board() -> CharucoBoard:
-    """
-    Fixture to create a CharucoBoard instance
-    """
-    return CharucoBoard()
-
-
-@pytest.fixture
-def detection_answer_dir() -> Path:
-    """
-    Fixture to answer directory for the detection results
-    """
-    return Path("tests/images/cam_calib_charuco_images/detection_answers")
-
-
-@pytest.fixture
-def detections(detection_answer_dir) -> Iterable[CharucoBoardDetection]:
-    """
-    Fixture to load the charuco board image
-    """
-    return [CharucoBoardDetection.load_from(file) for file in detection_answer_dir.glob("*.npz")]
+    img = cv2.imread("tests/images/charuco_board.jpg")
+    assert img is not None, "charuco_board_image should not be None"
+    return img
 
 
 @pytest.mark.parametrize(
@@ -87,8 +57,8 @@ def test_detect_empty_image(charuco_board: CharucoBoard):
     n_charuco_corners, detection = charuco_board.detect(image)
 
     # Assert
-    assert n_charuco_corners == 0, f"Failed on empty image - n_charuco_corners should be 0, got {n_charuco_corners}"
-    assert detection is None, f"Failed on empty image - detection should be None, got {detection}"
+    assert n_charuco_corners == 0, f"n_charuco_corners should be 0, got {n_charuco_corners}"
+    assert detection is None, f"detection should be None, got {detection}"
 
 
 def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: npt.NDArray[np.uint8]):
@@ -108,13 +78,13 @@ def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: n
     n_charuco_corners, detection = charuco_board.detect(charuco_board_image)
 
     # Assert
-    assert n_charuco_corners == 32, f"Failed on happy path - n_charuco_corners should be 32, got {n_charuco_corners}"
+    assert n_charuco_corners == 32, f"n_charuco_corners should be 32, got {n_charuco_corners}"
     assert isinstance(detection, CharucoBoardDetection), \
-        f"Failed on happy path - detection should be a CharucoBoardDetection instance, got {detection}"
+        f"detection should be CharucoBoardDetection, got {type(detection)}"
     assert (detection.aruco_marker_ids == aruco_marker_ids).all(), \
-        f"Failed on happy path - aruco_marker_ids should be {aruco_marker_ids}, got {detection.aruco_marker_ids}"
+        f"aruco_marker_ids should be:\n{aruco_marker_ids}\nwhile got:\n{detection.aruco_marker_ids}"
     assert (detection.charuco_ids == charuco_ids).all(), \
-        f"Failed on happy path - charuco_ids should be {charuco_ids}, got {detection.charuco_ids}"
+        f"charuco_ids should be:\n{charuco_ids}\nwhile got:\n{detection.charuco_ids}"
 
 
 def test_detect_calibration_images(
@@ -136,25 +106,9 @@ def test_detect_calibration_images(
         _, detection = charuco_board.detect(image)
 
         # Assert
-        assert detection is not None, f"Failed on happy path - detection should not be None for {image_path.stem}"
+        assert detection is not None, f"detection should not be None for {image_path.stem}"
         detection.save_to(result_dir / f"{image_path.stem}.npz")
-        detection_answer = CharucoBoardDetection.load_from(answer_dir / f"{image_path.stem}.npz")
-        assert detection.has_equal_ids(detection_answer), \
-            f"Failed on happy path - detection should be equal to detection_answer for {image_path.stem}"
-
-# @pytest.mark.parametrize("test_id, detections, expected_calibration", [
-#     ("calibrate_camera_happy_path",
-#      [(np.zeros((100, 100, 3), dtype=np.uint8), CharucoBoardDetection(np.empty((1,)), np.empty((4, 2,)), None, None))],
-#      CameraCalibration(None, None)),
-#     # Add more test cases for various realistic values, edge cases, and error cases
-# ])
-# def test_calibrate_camera(test_id, detections, expected_calibration):
-#     # Arrange
-#     board = CharucoBoard()
-#
-#     # Act
-#     calibration_result = board.calibrate_camera(detections)
-#
-#     # Assert
-#     assert isinstance(calibration_result,
-#                       CameraCalibration), f"Failed on {test_id} - result is not a CameraCalibration instance"
+        det_ans = CharucoBoardDetection.load_from(answer_dir / f"{image_path.stem}.npz")
+        assert detection.has_equal_ids(det_ans), \
+            f"detection should be equal to detection_answer for {image_path.stem}, " \
+            f"got:\n{detection.aruco_marker_ids}\nwhile answer is:\n{det_ans.aruco_marker_ids}"
