@@ -16,8 +16,8 @@ from mono3d.globals import LEGACY
 @dataclass
 class CharucoBoardDetection:
     """ Structured storage of detections on a Charuco board """
-    aruco_marker_ids: Optional[npt.NDArray[np.int32]] = None  # shape: (n, 1)
-    aruco_marker_corners: Optional[npt.NDArray[np.float32]] = None  # shape: (n, 4, 2)
+    aruco_marker_ids: npt.NDArray[np.int32]  # shape: (n, 1)
+    aruco_marker_corners: npt.NDArray[np.float32]  # shape: (n, 4, 2)
     charuco_ids: Optional[npt.NDArray[np.int32]] = None  # shape: (n, 1)
     charuco_corners: Optional[npt.NDArray[np.float32]] = None  # shape: (n, 4, 2)
 
@@ -92,7 +92,7 @@ class CharucoBoard:
             )
             self.charuco_detector = cv2.aruco.CharucoDetector(board=self.board)
 
-    def detect(self, image: npt.NDArray[np.uint8]) -> Tuple[int, CharucoBoardDetection]:
+    def detect(self, image: npt.NDArray[np.uint8]) -> Tuple[int, Optional[CharucoBoardDetection]]:
         """
         Detects Aruco and Charuco markers in the given image.
         Detected Aruco markers are refined for better accuracy using cornerSubPix.
@@ -106,17 +106,18 @@ class CharucoBoard:
         """
         # check if image is not empty
         if image.size == 0:
-            return 0, CharucoBoardDetection()
+            return 0, None
 
         # image = self.sharp(image=image.copy())  # TODO: sharpen image?
 
         if LEGACY:
             return self._detect_legacy(image=image)
 
-        aruco_corners, aruco_ids, _ = self.aruco_detector.detectMarkers(image=image)
+        # While OpenCV >= 4.6.0, and LEGACY is False, aruco_detector and charuco_detector are available
+        aruco_corners, aruco_ids, _ = self.aruco_detector.detectMarkers(image=image)  # type: ignore
 
         if aruco_ids is None:
-            return 0, CharucoBoardDetection()
+            return 0, None
 
         # iterates over each detected Aruco corner to find the sub-pixel accurate location
         criteria = (cv2.TermCriteria_EPS + cv2.TermCriteria_MAX_ITER, 100, 0.00001)  # 0.00001 come from Alex
@@ -128,8 +129,8 @@ class CharucoBoard:
                 zeroZone=(-1, -1),
                 criteria=criteria
             )
-
-        charuco_corners, charuco_ids, _, _ = self.charuco_detector.detectBoard(
+        # While OpenCV >= 4.6.0, and LEGACY is False, aruco_detector and charuco_detector are available
+        charuco_corners, charuco_ids, _, _ = self.charuco_detector.detectBoard(  # type: ignore
             image=image,
             markerCorners=aruco_corners,
             markerIds=aruco_ids,
@@ -144,7 +145,7 @@ class CharucoBoard:
             charuco_ids=charuco_ids
         )
 
-    def _detect_legacy(self, image: npt.NDArray[np.uint8]) -> Tuple[int, CharucoBoardDetection]:
+    def _detect_legacy(self, image: npt.NDArray[np.uint8]) -> Tuple[int, Optional[CharucoBoardDetection]]:
         """
         detect() function for OpenCV < 4.6.0
 
@@ -157,7 +158,7 @@ class CharucoBoard:
         aruco_corners, aruco_ids, _ = cv2.aruco.detectMarkers(image=image, dictionary=self.aruco_dict)
 
         if aruco_ids is None:
-            return 0, CharucoBoardDetection()
+            return 0, None
 
         _, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(
             markerCorners=aruco_corners,
@@ -206,6 +207,8 @@ class CharucoBoard:
         image_size = detections[0][0].shape[:2]
 
         for _, detection in detections:
+            if detection.charuco_corners is None or detection.charuco_ids is None:
+                continue
             all_corners_flatten.append(detection.charuco_corners)
             all_ids_flatten.append(detection.charuco_ids)
         (
@@ -280,29 +283,35 @@ if __name__ == "__main__":
     test_image = cv2.imread(test_image_path)
 
     board = CharucoBoard()
-    n_corners, detections = board.detect(test_image)
-    n_markers = len(detections.aruco_marker_ids)
+    n_corners, detection = board.detect(test_image)
+    if detection is None:
+        print("No detections found")
+        exit(1)
+    n_markers = len(detection.aruco_marker_ids)
 
     print(f"Found {n_markers} Aruco markers and {n_corners} Charuco corners")
     # print ids
-    print(f"marker ids: {detections.aruco_marker_ids}")
-    print(f"charuco ids: {detections.charuco_ids}")
+    print(f"marker ids: {detection.aruco_marker_ids}")
+    print(f"charuco ids: {detection.charuco_ids}")
     # print dtype of corners and ids
-    print(f"marker corner dtype: {detections.aruco_marker_corners[0].dtype}")
-    print(f"marker id dtype: {detections.aruco_marker_ids[0].dtype}")
-    print(f"charuco corner dtype: {detections.charuco_corners[0].dtype}")
-    print(f"charuco id dtype: {detections.charuco_ids[0].dtype}")
+    print(f"marker corner dtype: {detection.aruco_marker_corners[0].dtype}")
+    print(f"marker id dtype: {detection.aruco_marker_ids[0].dtype}")
+    if detection.charuco_corners is not None and detection.charuco_ids is not None:
+        print(f"charuco corner dtype: {detection.charuco_corners[0].dtype}")
+        print(f"charuco id dtype: {detection.charuco_ids[0].dtype}")
 
     test_calib_image_dir = Path("../tests/images/cam_calib_charuco_images")
     test_calib_image_paths = list(test_calib_image_dir.glob("*.jpg"))
 
-    detections = []
+    detections: List[Tuple[npt.NDArray[np.uint8], CharucoBoardDetection]] = []
     write_dir = test_calib_image_dir / "plotted"
     write_dir.mkdir(exist_ok=True)
     for image_path in tqdm(test_calib_image_paths, desc="Calibrating"):
         image = cv2.imread(str(image_path))
         n_corners, detection = board.detect(image)
-
+        if detection is None:
+            print(f"No detections found in {image_path}")
+            continue
         plotted = CharucoBoard.draw_detection(image=image, detection=detection)
         # write to file
         cv2.imwrite(str(write_dir / f"{image_path.stem}.plotted.jpg"), plotted)
