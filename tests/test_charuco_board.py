@@ -54,10 +54,9 @@ def test_detect_empty_image(charuco_board: CharucoBoard):
     image = np.zeros((100, 100, 3), dtype=np.uint8)
 
     # Act
-    n_charuco_corners, detection = charuco_board.detect(image)
+    detection = charuco_board.detect(image)
 
     # Assert
-    assert n_charuco_corners == 0, f"n_charuco_corners should be 0, got {n_charuco_corners}"
     assert detection is None, f"detection should be None, got {detection}"
 
 
@@ -75,10 +74,9 @@ def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: n
     assert charuco_board_image is not None, "Failed on happy path - charuco_board_image should not be None"
 
     # Act
-    n_charuco_corners, detection = charuco_board.detect(charuco_board_image)
+    detection = charuco_board.detect(charuco_board_image)
 
     # Assert
-    assert n_charuco_corners == 32, f"n_charuco_corners should be 32, got {n_charuco_corners}"
     assert isinstance(detection, CharucoBoardDetection), \
         f"detection should be CharucoBoardDetection, got {type(detection)}"
     assert (detection.aruco_marker_ids == aruco_marker_ids).all(), \
@@ -103,7 +101,7 @@ def test_detect_calibration_images(
         image = cv2.imread(str(image_path))
 
         # Act
-        _, detection = charuco_board.detect(image)
+        detection = charuco_board.detect(image)
 
         # Assert
         assert detection is not None, f"detection should not be None for {image_path.stem}"

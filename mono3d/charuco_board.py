@@ -83,7 +83,7 @@ class CharucoBoard:
             )
             self.charuco_detector = cv2.aruco.CharucoDetector(board=self.board)
 
-    def detect(self, image: npt.NDArray[np.uint8]) -> Tuple[int, Optional[CharucoBoardDetection]]:
+    def detect(self, image: npt.NDArray[np.uint8]) -> Optional[CharucoBoardDetection]:
         """
         Detects Aruco and Charuco markers in the given image.
         Detected Aruco markers are refined for better accuracy using cornerSubPix.
@@ -97,7 +97,7 @@ class CharucoBoard:
         """
         # check if image is not empty
         if image.size == 0:
-            return 0, None
+            return None
 
         # image = self.sharp(image=image.copy())  # TODO: sharpen image?
 
@@ -108,7 +108,7 @@ class CharucoBoard:
         aruco_corners, aruco_ids, _ = self.aruco_detector.detectMarkers(image=image)  # type: ignore
 
         if aruco_ids is None:
-            return 0, None
+            return None
 
         # iterates over each detected Aruco corner to find the sub-pixel accurate location
         criteria = (cv2.TermCriteria_EPS + cv2.TermCriteria_MAX_ITER, 100, 0.00001)  # 0.00001 come from Alex
@@ -128,16 +128,18 @@ class CharucoBoard:
         )
 
         # TODO: Do subpix on charuco corners
-        n_charuco_corners = len(charuco_corners)  # TODO: is returning n_charuco_corners necessary?
 
-        return n_charuco_corners, CharucoBoardDetection(
+        if charuco_corners is None or charuco_ids is None:
+            return None
+
+        return CharucoBoardDetection(
             aruco_marker_corners=aruco_corners,
             aruco_marker_ids=aruco_ids,
             charuco_corners=charuco_corners,
             charuco_ids=charuco_ids
         )
 
-    def _detect_legacy(self, image: npt.NDArray[np.uint8]) -> Tuple[int, Optional[CharucoBoardDetection]]:
+    def _detect_legacy(self, image: npt.NDArray[np.uint8]) -> Optional[CharucoBoardDetection]:
         """
         detect() function for OpenCV < 4.6.0
 
@@ -150,7 +152,7 @@ class CharucoBoard:
         aruco_corners, aruco_ids, _ = cv2.aruco.detectMarkers(image=image, dictionary=self.aruco_dict)
 
         if aruco_ids is None:
-            return 0, None
+            return None
 
         _, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(
             markerCorners=aruco_corners,
@@ -160,9 +162,12 @@ class CharucoBoard:
             # number of adjacent markers that must be detected to return a charuco corner
             minMarkers=2
         )
-        n_charuco_corners = len(charuco_corners)
+
+        if charuco_corners is None or charuco_ids is None:
+            return None
+
         # TODO: Do subpix on charuco corners
-        return n_charuco_corners, CharucoBoardDetection(
+        return CharucoBoardDetection(
             aruco_marker_corners=aruco_corners,
             aruco_marker_ids=aruco_ids,
             charuco_corners=charuco_corners,
@@ -274,11 +279,12 @@ if __name__ == "__main__":
     test_image = cv2.imread(test_image_path)
 
     board = CharucoBoard()
-    n_corners, detection = board.detect(test_image)
-    if detection is None:
+    detection = board.detect(test_image)
+    if detection is None or detection.charuco_corners is None or detection.charuco_ids is None:
         print("No detections found")
         exit(1)
     n_markers = len(detection.aruco_marker_ids)
+    n_corners = len(detection.charuco_ids)
 
     print(f"Found {n_markers} Aruco markers and {n_corners} Charuco corners")
     # print ids
@@ -299,7 +305,7 @@ if __name__ == "__main__":
     write_dir.mkdir(exist_ok=True)
     for image_path in tqdm(test_calib_image_paths, desc="Detecting charuco corners:"):
         image = cv2.imread(str(image_path))
-        n_corners, detection = board.detect(image)
+        detection = board.detect(image)
         if detection is None:
             print(f"No detections found in {image_path}")
             continue
