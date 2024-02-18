@@ -103,6 +103,10 @@ class CharucoBoard:
         if image.size == 0:
             return None
 
+        # if not gray scale, convert to gray scale
+        if len(image.shape) == 3:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
         # image = self.sharp(image=image.copy())  # TODO: sharpen image?
 
         if LEGACY:
