@@ -71,7 +71,7 @@ def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: n
                             [9], [10], [11], [12], [13], [14], [15], [16],
                             [17], [18], [19], [20], [21], [22], [23], [24],
                             [25], [26], [27], [28], [29], [32], [33]])
-    assert charuco_board_image is not None, "Failed on happy path - charuco_board_image should not be None"
+    assert charuco_board_image is not None, "charuco_board_image should not be None"
 
     # Act
     detection = charuco_board.detect(charuco_board_image)
@@ -79,6 +79,8 @@ def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: n
     # Assert
     assert isinstance(detection, CharucoBoardDetection), \
         f"detection should be CharucoBoardDetection, got {type(detection)}"
+    assert aruco_marker_ids.shape == detection.aruco_marker_ids.shape, \
+        f"aruco_marker_ids should have shape {aruco_marker_ids.shape} while got {detection.aruco_marker_ids.shape}"
     assert (detection.aruco_marker_ids == aruco_marker_ids).all(), \
         f"aruco_marker_ids should be:\n{aruco_marker_ids}\nwhile got:\n{detection.aruco_marker_ids}"
     assert (detection.charuco_ids == charuco_ids).all(), \
