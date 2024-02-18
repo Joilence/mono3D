@@ -1,6 +1,5 @@
 """ CharucoBoard class compatible with both OpenCV above and below 4.6.0 """
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple, List, Any
 
@@ -10,16 +9,8 @@ import numpy.typing as npt
 from tqdm.auto import tqdm
 
 from mono3d import CameraParameter
+from mono3d.charuco_board_detection import CharucoBoardDetection
 from mono3d.globals import LEGACY
-
-
-@dataclass
-class CharucoBoardDetection:
-    """ Structured storage of detections on a Charuco board """
-    aruco_marker_ids: npt.NDArray[np.int32]  # shape: (n, 1)
-    aruco_marker_corners: npt.NDArray[np.float32]  # shape: (n, 4, 2)
-    charuco_ids: Optional[npt.NDArray[np.int32]] = None  # shape: (n, 1)
-    charuco_corners: Optional[npt.NDArray[np.float32]] = None  # shape: (n, 4, 2)
 
 
 class CharucoBoard:
