@@ -97,7 +97,7 @@ def test_detect_calibration_images(
     result_dir.mkdir(exist_ok=True)
 
     answer_dir = detection_answer_dir
-    assert answer_dir.exists(), f"Failed on happy path - answer_dir {answer_dir} does not exist"
+    assert answer_dir.exists(), f"answer_dir {answer_dir} does not exist"
 
     for image_path in calibration_image_paths:
         image = cv2.imread(str(image_path))
@@ -109,6 +109,8 @@ def test_detect_calibration_images(
         assert detection is not None, f"detection should not be None for {image_path.stem}"
         detection.save_to(result_dir / f"{image_path.stem}.npz")
         det_ans = CharucoBoardDetection.load_from(answer_dir / f"{image_path.stem}.npz")
+        assert detection.aruco_marker_ids.shape == det_ans.aruco_marker_ids.shape, \
+            f"aruco_marker_ids in {image_path.stem} should have shape {det_ans.aruco_marker_ids.shape} while got {detection.aruco_marker_ids.shape}"
         assert detection.has_equal_ids(det_ans), \
             f"detection should be equal to detection_answer for {image_path.stem}, " \
             f"got:\n{detection.aruco_marker_ids}\nwhile answer is:\n{det_ans.aruco_marker_ids}"
