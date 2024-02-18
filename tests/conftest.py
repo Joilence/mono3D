@@ -5,6 +5,7 @@ import pytest
 
 from mono3d import CharucoBoard
 from mono3d.charuco_board_detection import CharucoBoardDetection
+from mono3d.globals import LEGACY
 
 
 @pytest.fixture
@@ -20,7 +21,10 @@ def detection_answer_dir() -> Path:
     """
     Fixture to answer directory for the detection results
     """
-    detection_answer_dir = Path("tests/images/cam_calib_charuco_images/detection_answers")
+    if LEGACY:
+        detection_answer_dir = Path("tests/images/cam_calib_charuco_images/detection_answers.legacy")
+    else:
+        detection_answer_dir = Path("tests/images/cam_calib_charuco_images/detection_answers")
     assert detection_answer_dir.exists(), \
         f"detection_answer_dir {detection_answer_dir} does not exist"
     return detection_answer_dir
