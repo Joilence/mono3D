@@ -30,7 +30,23 @@ def calibration_answer(calibration_answer_dir) -> CameraParameter:
     return CameraParameter.load_from(calibration_answer_dir / "calibration_result.npz")
 
 
-def test_calibrate_camera(
+# add edge cases for calibrate_camera
+
+def test_calibrate_camera_empty_detections(
+        charuco_board: CharucoBoard,
+        calibration_image_paths: Iterable[Path],
+):
+    # Arrange
+    detections: Iterable[CharucoBoardDetection] = []
+
+    # Act
+    calib_res = charuco_board.calibrate_camera((100, 100), detections)
+
+    # Assert
+    assert calib_res is None, f"Failed on empty detections - calibration_result should be None, got:\n{calib_res}"
+
+
+def test_calibrate_camera_happy_path(
         charuco_board: CharucoBoard,
         detections: Iterable[CharucoBoardDetection],
         calibration_image_paths: Iterable[Path],

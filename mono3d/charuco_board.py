@@ -173,7 +173,7 @@ class CharucoBoard:
             self,
             image_size: Tuple[int, ...],
             detections: Iterable[CharucoBoardDetection],
-    ) -> CameraParameter:
+    ) -> Optional[CameraParameter]:
         """
         Calibrates the camera using Charuco detections.
 
@@ -189,11 +189,6 @@ class CharucoBoard:
             CameraParameter: The camera calibration results.
         """
 
-        if not detections:
-            # TODO: return None
-            print("WARNING: camera calibration receives no detections, returning zero matrix.")
-            return CameraParameter(intrinsic_mat=np.zeros((3, 3)), distortion_coeffs=np.zeros((5, 1)))
-
         all_corners_flatten: List[npt.NDArray[Any]] = []
         all_ids_flatten: List[npt.NDArray[Any]] = []
 
@@ -202,6 +197,11 @@ class CharucoBoard:
                 continue
             all_corners_flatten.append(detection.charuco_corners)
             all_ids_flatten.append(detection.charuco_ids)
+
+        if not all_corners_flatten or not all_ids_flatten:
+            tqdm.write("WARNING: No charuco corners found in the detections")
+            return None
+
         (
             error,
             camera_matrix,
@@ -314,8 +314,14 @@ if __name__ == "__main__":
 
     np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
     print("Camera matrix:")
+    if calibration is None:
+        print("Calibration failed")
+        exit(1)
     print(calibration.intrinsic_mat.dtype)
     print(calibration.intrinsic_mat)
+    if calibration.distortion_coeffs is None:
+        print("No distortion coefficients")
+        exit(1)
     print("Distortion coefficients:")
     print(calibration.distortion_coeffs.dtype)
     print(calibration.distortion_coeffs)
