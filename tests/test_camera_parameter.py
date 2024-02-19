@@ -77,11 +77,11 @@ def test_calibrate_camera_happy_path(
         f"same shape: {intrinsic_mat_same_shape}, same value: {intrinsic_mat_same_value}\n" \
         f"got:\n{calib_res.K}\nexpect:\n{calib_ans.K}\n"
 
-    distorsion_coeffs_same_shape = (calib_res.distortion_coeffs.shape == calib_ans.distortion_coeffs.shape)
-    distorsion_coeffs_same_value = np.allclose(calib_res.distortion_coeffs.reshape(-1),
+    distortion_coeffs_same_shape = (calib_res.distortion_coeffs.shape == calib_ans.distortion_coeffs.shape)
+    distortion_coeffs_same_value = np.allclose(calib_res.distortion_coeffs.reshape(-1),
                                                calib_ans.distortion_coeffs.reshape(-1))
 
-    assert distorsion_coeffs_same_shape and distorsion_coeffs_same_value, \
+    assert distortion_coeffs_same_shape and distortion_coeffs_same_value, \
         "Incorrect distortion coefficients, " \
-        f"same shape: {distorsion_coeffs_same_shape}, same value: {distorsion_coeffs_same_value}\n" \
+        f"same shape: {distortion_coeffs_same_shape}, same value: {distortion_coeffs_same_value}\n" \
         f"got:\n{calib_res.distortion_coeffs}\nexpect:\n{calib_ans.distortion_coeffs}\n"

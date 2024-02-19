@@ -35,7 +35,7 @@ class CharucoBoard:
         calibrate_camera(detections: Iterable[[CharucoBoardDetection]]) -> CameraParameter:
             Calibrates the camera using Charuco detections.
         draw_detection(image: cvt.MatLike, detection: CharucoBoardDetection) -> cvt.MatLike:
-            Draw charuco detection on a image
+            Draw charuco detection on an image
     """
 
     def __init__(
@@ -83,7 +83,7 @@ class CharucoBoard:
             Tuple[int, CharucoBoardDetection]: A tuple containing the number of detected charuco corners and
                 detection details
         """
-        # check if image is not empty
+        # check if the image is empty
         if image.size == 0:
             return None
 
