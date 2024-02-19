@@ -16,7 +16,17 @@ Measure 3D position of objects with one camera.
 
 Developed with Python 3.8.18.
 
-Direct dependencies see `requirements.in`.
+```shell
+# create and activate conda environment
+conda create -n mono3d-py38 python=3.8.18
+conda activate mono3d-py38
+
+# install dependencies
+python -m pip install -r requirements.in
+# install dev dependencies
+python -m pip install -r requirements.dev.in
+
+```
 
 ## Credits
 
