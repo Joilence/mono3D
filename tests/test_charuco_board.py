@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Any, Dict, Iterable
 
 import cv2
+import cv2.typing as cvt
 import numpy as np
-import numpy.typing as npt
 import pytest
 
 from mono3d.charuco_board import CharucoBoard
@@ -13,7 +13,7 @@ from mono3d.globals import LEGACY
 
 
 @pytest.fixture
-def charuco_board_image() -> npt.NDArray[np.uint8]:
+def charuco_board_image() -> cvt.MatLike:
     """
     Fixture to load the charuco board image
     """
@@ -61,7 +61,7 @@ def test_detect_empty_image(charuco_board: CharucoBoard):
     assert detection is None, f"detection should be None, got {detection}"
 
 
-def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: npt.NDArray[np.uint8]):
+def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: cvt.MatLike):
     # Arrange
     assert charuco_board_image is not None, "charuco_board_image should not be None"
 

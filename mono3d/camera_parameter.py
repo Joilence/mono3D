@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Union
 
 import cv2
+import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
 from tqdm.auto import trange
@@ -102,7 +103,7 @@ class CameraParameter:
         cap.release()
         out.release()
 
-    def undistort_image(self, image: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    def undistort_image(self, image: cvt.MatLike) -> cvt.MatLike:
         """ Undistort an image using the camera parameters
 
         Args:

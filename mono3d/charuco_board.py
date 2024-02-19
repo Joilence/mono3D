@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional, Tuple, List, Any, Iterable
 
 import cv2
+import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
@@ -31,14 +32,14 @@ class CharucoBoard:
             Charuco board detector, only available for OpenCV > 4.6.0
 
     Methods:
-        detect(image: npt.NDArray[np.uint8]) -> Tuple[int, CharucoBoardDetection]:
+        detect(image: cvt.MatLike) -> Tuple[int, CharucoBoardDetection]:
             Detects Aruco and Charuco markers in the given image.
-        _detect_legacy(image: npt.NDArray[np.uint8]) -> Tuple[int, CharucoBoardDetection]:
+        _detect_legacy(image: cvt.MatLike) -> Tuple[int, CharucoBoardDetection]:
             detect() function for OpenCV < 4.6.0
         calibrate_camera(detections: List[Tuple[npt.NDArray[np.uint8],
         CharucoBoardDetection]]) -> CameraParameter:
             Calibrates the camera using Charuco detections.
-        draw_detection(image: npt.NDArray[np.uint8], detection: CharucoBoardDetection) -> npt.NDArray[np.uint8]:
+        draw_detection(image: cvt.MatLike, detection: CharucoBoardDetection) -> cvt.MatLike:
             Draw charuco detection on a image
     """
 
@@ -87,13 +88,13 @@ class CharucoBoard:
             )
             self.charuco_detector = cv2.aruco.CharucoDetector(board=self.board)
 
-    def detect(self, image: npt.NDArray[np.uint8]) -> Optional[CharucoBoardDetection]:
+    def detect(self, image: cvt.MatLike) -> Optional[CharucoBoardDetection]:
         """
         Detects Aruco and Charuco markers in the given image.
         Detected Aruco markers are refined for better accuracy using cornerSubPix.
 
         Arg:
-            image (npt.NDArray[np.uint8]): The input image for marker detection.
+            image (cvt.MatLike): The input image for marker detection.
 
         Returns:
             Tuple[int, CharucoBoardDetection]: A tuple containing the number of detected charuco corners and
@@ -147,12 +148,12 @@ class CharucoBoard:
             charuco_ids=charuco_ids
         )
 
-    def _detect_legacy(self, image: npt.NDArray[np.uint8]) -> Optional[CharucoBoardDetection]:
+    def _detect_legacy(self, image: cvt.MatLike) -> Optional[CharucoBoardDetection]:
         """
         detect() function for OpenCV < 4.6.0
 
         Args:
-            image (npt.NDArray[np.uint8])
+            image (cvt.MatLike)
 
         Returns:
             Tuple[int, CharucoBoardDetection]
@@ -252,18 +253,18 @@ class CharucoBoard:
 
     @staticmethod
     def draw_detection(
-            image: npt.NDArray[np.uint8],
+            image: cvt.MatLike,
             detection: CharucoBoardDetection
-    ) -> npt.NDArray[np.uint8]:
+    ) -> cvt.MatLike:
         """
         Draw charuco detection on an image
 
         Args:
-            image (npt.NDArray[np.uint8]): image to be plotted
+            image (cvt.MatLike): image to be plotted
             detection (CharucoBoardDetection): charuco detection
 
         Returns:
-            npt.NDArray[np.uint8]: image plotted with charuco detection
+            cvt.MatLike: image plotted with charuco detection
         """
         plotted = image.copy()
         cv2.aruco.drawDetectedMarkers(
