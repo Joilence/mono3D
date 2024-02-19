@@ -4,7 +4,6 @@ from typing import Optional, Union, Any, Sequence
 
 import numpy as np
 import cv2.typing as cvt
-from numpy import typing as npt
 
 
 @dataclass(frozen=True)
