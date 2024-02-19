@@ -36,8 +36,7 @@ class CharucoBoard:
             Detects Aruco and Charuco markers in the given image.
         _detect_legacy(image: cvt.MatLike) -> Tuple[int, CharucoBoardDetection]:
             detect() function for OpenCV < 4.6.0
-        calibrate_camera(detections: List[Tuple[npt.NDArray[np.uint8],
-        CharucoBoardDetection]]) -> CameraParameter:
+        calibrate_camera(detections: Iterable[[CharucoBoardDetection]]) -> CameraParameter:
             Calibrates the camera using Charuco detections.
         draw_detection(image: cvt.MatLike, detection: CharucoBoardDetection) -> cvt.MatLike:
             Draw charuco detection on a image
@@ -230,9 +229,10 @@ class CharucoBoard:
             charucoIds=all_ids_flatten,
             board=self.board,
             imageSize=image_size,
-            cameraMatrix=None,
-            distCoeffs=None,
             criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.00001),
+            # default value for type check
+            cameraMatrix=np.zeros((3, 3), dtype=np.float64),
+            distCoeffs=np.zeros((1, 5), dtype=np.float64),
         )
 
         # TODO: iterate to remove high error views (images)?
@@ -247,8 +247,9 @@ class CharucoBoard:
         )
 
         return CameraParameter(
-            intrinsic_mat=new_camera_matrix,
-            distortion_coeffs=distortion_coeffs
+            # TODO: should change the typing in the class?
+            intrinsic_mat=new_camera_matrix.astype(np.float64, copy=False),
+            distortion_coeffs=distortion_coeffs.astype(np.float64, copy=False)
         )
 
     @staticmethod
