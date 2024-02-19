@@ -11,13 +11,11 @@ from tqdm.auto import tqdm
 
 from mono3d import CameraParameter
 from mono3d.charuco_board_detection import CharucoBoardDetection
-from mono3d.globals import LEGACY
 
 
 class CharucoBoard:
     """
     A class represents a Charuco board.
-    # TODO: not tested with OpenCV > 4.6.0
 
     Attributes:
         aruco_dict (cv2.aruco.Dictionary): The Aruco dictionary.
@@ -34,8 +32,6 @@ class CharucoBoard:
     Methods:
         detect(image: cvt.MatLike) -> Tuple[int, CharucoBoardDetection]:
             Detects Aruco and Charuco markers in the given image.
-        _detect_legacy(image: cvt.MatLike) -> Tuple[int, CharucoBoardDetection]:
-            detect() function for OpenCV < 4.6.0
         calibrate_camera(detections: Iterable[[CharucoBoardDetection]]) -> CameraParameter:
             Calibrates the camera using Charuco detections.
         draw_detection(image: cvt.MatLike, detection: CharucoBoardDetection) -> cvt.MatLike:
@@ -44,8 +40,7 @@ class CharucoBoard:
 
     def __init__(
             self,
-            # TODO: unable to use [cv2.aruco.Dictionary] since not exist in OpenCV < 4.6.0, unsure about newer version
-            aruco_dict: Optional[Any] = None,
+            aruco_dict: Optional[cv2.aruco.Dictionary] = None,
             n_horizontal_squares: int = 5,
             n_vertical_squares: int = 10,
             board_square_length: float = 55.0,
@@ -61,31 +56,20 @@ class CharucoBoard:
         self.board_square_length = board_square_length
         self.aruco_marker_length = aruco_marker_length
 
-        if LEGACY:
-            self.board = cv2.aruco.CharucoBoard_create(
-                squaresX=self.n_horizontal_squares,
-                squaresY=self.n_vertical_squares,
-                squareLength=self.board_square_length,
-                markerLength=self.aruco_marker_length,
-                dictionary=self.aruco_dict
-            )
-            self.aruco_detector = None
-            self.charuco_detector = None
-        else:
-            self.board = cv2.aruco.CharucoBoard(
-                size=(self.n_horizontal_squares, self.n_vertical_squares),
-                squareLength=self.board_square_length,
-                markerLength=self.aruco_marker_length,
-                dictionary=self.aruco_dict
-            )
-            if use_board_legacy_pattern:
-                tqdm.write("WARNING: Using the legacy CharucoBoard pattern.")
-                self.board.setLegacyPattern(use_board_legacy_pattern)
-            self.aruco_detector = cv2.aruco.ArucoDetector(
-                dictionary=self.aruco_dict,
-                detectorParams=cv2.aruco.DetectorParameters()
-            )
-            self.charuco_detector = cv2.aruco.CharucoDetector(board=self.board)
+        self.board = cv2.aruco.CharucoBoard(
+            size=(self.n_horizontal_squares, self.n_vertical_squares),
+            squareLength=self.board_square_length,
+            markerLength=self.aruco_marker_length,
+            dictionary=self.aruco_dict
+        )
+        if use_board_legacy_pattern:
+            tqdm.write("WARNING: Using the legacy CharucoBoard pattern.")
+            self.board.setLegacyPattern(use_board_legacy_pattern)
+        self.aruco_detector = cv2.aruco.ArucoDetector(
+            dictionary=self.aruco_dict,
+            detectorParams=cv2.aruco.DetectorParameters()
+        )
+        self.charuco_detector = cv2.aruco.CharucoDetector(board=self.board)
 
     def detect(self, image: cvt.MatLike) -> Optional[CharucoBoardDetection]:
         """
@@ -109,11 +93,7 @@ class CharucoBoard:
 
         # image = self.sharp(image=image.copy())  # TODO: sharpen image?
 
-        if LEGACY:
-            return self._detect_legacy(image=image)
-
-        # While OpenCV >= 4.6.0, and LEGACY is False, aruco_detector and charuco_detector are available
-        aruco_corners, aruco_ids, _ = self.aruco_detector.detectMarkers(image=image)  # type: ignore
+        aruco_corners, aruco_ids, _ = self.aruco_detector.detectMarkers(image=image)
 
         if aruco_ids is None:
             return None
@@ -140,41 +120,6 @@ class CharucoBoard:
         if charuco_corners is None or charuco_ids is None:
             return None
 
-        return CharucoBoardDetection(
-            aruco_marker_corners=aruco_corners,
-            aruco_marker_ids=aruco_ids,
-            charuco_corners=charuco_corners,
-            charuco_ids=charuco_ids
-        )
-
-    def _detect_legacy(self, image: cvt.MatLike) -> Optional[CharucoBoardDetection]:
-        """
-        detect() function for OpenCV < 4.6.0
-
-        Args:
-            image (cvt.MatLike)
-
-        Returns:
-            Tuple[int, CharucoBoardDetection]
-        """
-        aruco_corners, aruco_ids, _ = cv2.aruco.detectMarkers(image=image, dictionary=self.aruco_dict)
-
-        if aruco_ids is None:
-            return None
-
-        _, charuco_corners, charuco_ids = cv2.aruco.interpolateCornersCharuco(
-            markerCorners=aruco_corners,
-            markerIds=aruco_ids,
-            image=image,
-            board=self.board,
-            # number of adjacent markers that must be detected to return a charuco corner
-            minMarkers=2
-        )
-
-        if charuco_corners is None or charuco_ids is None:
-            return None
-
-        # TODO: Do subpix on charuco corners
         return CharucoBoardDetection(
             aruco_marker_corners=aruco_corners,
             aruco_marker_ids=aruco_ids,

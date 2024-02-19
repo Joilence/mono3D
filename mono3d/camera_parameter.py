@@ -80,7 +80,7 @@ class CameraParameter:
         fps = int(cap.get(cv2.CAP_PROP_FPS))
 
         # Create a VideoWriter object
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter.fourcc(*'mp4v')
         out = cv2.VideoWriter(str(output_path), fourcc, fps, (frame_width, frame_height))
 
         for i in trange(total_frames, desc="Undistorting frames:", leave=False):
@@ -114,4 +114,5 @@ class CameraParameter:
             np.ndarray
                 The undistorted image
         """
+
         return cv2.undistort(image.copy(), self.intrinsic_mat, self.distortion_coeffs)

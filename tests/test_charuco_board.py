@@ -9,7 +9,6 @@ import pytest
 
 from mono3d.charuco_board import CharucoBoard
 from mono3d.charuco_board_detection import CharucoBoardDetection
-from mono3d.globals import LEGACY
 
 
 @pytest.fixture
@@ -71,12 +70,10 @@ def test_detect_single_image(charuco_board: CharucoBoard, charuco_board_image: c
     # Assert
     assert isinstance(detection, CharucoBoardDetection), \
         f"detection should be CharucoBoardDetection, got {type(detection)}"
-    if LEGACY:
-        detection.save_to("tests/images/charuco_board_detection_result.legacy.npz")
-        det_ans = CharucoBoardDetection.load_from("tests/images/charuco_board_detection_answer.legacy.npz")
-    else:
-        detection.save_to("tests/images/charuco_board_detection_result.npz")
-        det_ans = CharucoBoardDetection.load_from("tests/images/charuco_board_detection_answer.npz")
+
+    detection.save_to("tests/images/charuco_board_detection_result.npz")
+    det_ans = CharucoBoardDetection.load_from("tests/images/charuco_board_detection_answer.npz")
+
     assert det_ans.aruco_marker_ids.shape == detection.aruco_marker_ids.shape, \
         f"aruco_marker_ids should have shape {det_ans.aruco_marker_ids.shape} while got {detection.aruco_marker_ids.shape}"
     assert detection.has_equal_ids(det_ans), \
@@ -89,10 +86,7 @@ def test_detect_calibration_images(
         detection_answer_dir: Path,
 ):
     # Arrange
-    if LEGACY:
-        result_dir = Path("tests/images/cam_calib_charuco_images/detection_results.legacy")
-    else:
-        result_dir = Path("tests/images/cam_calib_charuco_images/detection_results")
+    result_dir = Path("tests/images/cam_calib_charuco_images/detection_results")
     result_dir.mkdir(exist_ok=True)
 
     answer_dir = detection_answer_dir

@@ -9,7 +9,6 @@ import pytest
 
 from mono3d import CharucoBoard, CameraParameter
 from mono3d.charuco_board_detection import CharucoBoardDetection
-from mono3d.globals import LEGACY
 
 
 @pytest.fixture
@@ -17,10 +16,8 @@ def calibration_answer_dir() -> Path:
     """
     Fixture to answer directory for the calibration results
     """
-    if LEGACY:
-        calibration_answer_dir = Path("tests/images/cam_calib_charuco_images/calibration_answer.legacy")
-    else:
-        calibration_answer_dir = Path("tests/images/cam_calib_charuco_images/calibration_answer")
+
+    calibration_answer_dir = Path("tests/images/cam_calib_charuco_images/calibration_answer")
     assert calibration_answer_dir.exists(), \
         f"calibration_answer_dir {calibration_answer_dir} does not exist"
     return calibration_answer_dir
@@ -60,10 +57,8 @@ def test_calibrate_camera_happy_path(
 
     # Take the first image to get the image size
     image_size = cv2.imread(str(next(iter(calibration_image_paths)))).shape[:2]  # TODO: could be a fixture
-    if LEGACY:
-        calib_res_dir = Path("tests/images/cam_calib_charuco_images/calibration_result.legacy")
-    else:
-        calib_res_dir = Path("tests/images/cam_calib_charuco_images/calibration_result")
+
+    calib_res_dir = Path("tests/images/cam_calib_charuco_images/calibration_result")
     calib_res_dir.mkdir(exist_ok=True)
     calib_ans = calibration_answer
 
