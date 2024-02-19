@@ -1,7 +1,10 @@
+"""Camera Parameter Module"""
+
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union
 
 import cv2
+import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
 from tqdm.auto import trange
@@ -12,14 +15,10 @@ class CameraParameter:
     A class to store camera parameters
 
     Attributes:
-        intrinsic_mat: np.ndarray
+        intrinsic_mat: npt.NDArray[np.float64]
             The intrinsic matrix of the camera
-        distortion_coeffs: np.ndarray
+        distortion_coeffs: npt.NDArray[np.float64]
             The distortion coefficients of the camera
-        rvec: np.ndarray
-            The rotation vector of the camera
-        tvec: np.ndarray
-            The translation vector of the camera
 
     Methods:
         save_to(file_path: Union[str, Path]) -> None
@@ -32,25 +31,10 @@ class CameraParameter:
             self,
             intrinsic_mat: npt.NDArray[np.float64],  # shape: (3, 3)
             distortion_coeffs: npt.NDArray[np.float64],  # shape: (5, 1)
-            rvec: Optional[npt.NDArray[np.float64]] = None,
-            tvec: Optional[npt.NDArray[np.float64]] = None,
     ):
         # camera parameters
         self.intrinsic_mat = intrinsic_mat
         self.distortion_coeffs = distortion_coeffs
-        self.rvec = rvec
-        self.tvec = tvec
-
-        # self.rotation_mat = rotation_mat
-        # self.projection_mat = np.dot(self.intrinsic_mat, np.hstack((self.rotation_mat, self.tvec)))
-        # self.fundamental_mat = None  # TODO: implement this later
-
-        # self.intrinsic_mat: np.ndarray = np.zeros((1, 1))
-        # self.rvec: np.ndarray = np.zeros((1, 1))
-        # self.tvec: np.ndarray = np.zeros((1, 1))
-        # self.rotation_mat: np.ndarray = np.zeros((1, 1))
-        # self.projection_mat: np.ndarray = np.zeros((1, 1))
-        # self.fundamental_mat: dict[str, np.ndarray] = {}
 
     def save_to(self, file_path: Union[str, Path]):
         """ Save camera parameters to a file """
@@ -58,52 +42,21 @@ class CameraParameter:
             str(file_path),
             intrinsic_mat=self.intrinsic_mat,
             distortion_coeffs=self.distortion_coeffs,
-            rvec=self.rvec,
-            tvec=self.tvec
-            # rotation_mat=self.rotation_mat,
-            # projection_mat=self.projection_mat,
         )
 
-    def load_from(self, file_path: Union[str, Path]):
+    @staticmethod
+    def load_from(file_path: Union[str, Path]) -> "CameraParameter":
         """ Load camera parameters from a file """
         data = np.load(str(file_path))
-        self.intrinsic_mat = data['intrinsic_mat']
-        self.distortion_coeffs = data['distortion_coeffs']
-        self.rvec = data['rvec']
-        self.tvec = data['tvec']
-        # self.rotation_mat = data['rotation_mat']
-        # self.projection_mat = data['projection_mat']
-        return self
+        return CameraParameter(
+            intrinsic_mat=data["intrinsic_mat"],
+            distortion_coeffs=data["distortion_coeffs"],
+        )
 
     @property
-    def K(self) -> np.ndarray:
+    def K(self) -> npt.NDArray[np.float64]:
         """ alias of intrinsic_mat """
         return self.intrinsic_mat
-
-    @property
-    def r(self) -> np.ndarray:
-        """ alias of rvec """
-        return self.rvec
-
-    @property
-    def t(self) -> np.ndarray:
-        """ alias of tvec """
-        return self.tvec
-
-    # @property
-    # def R(self) -> np.ndarray:
-    #     """ alias of rotation_mat """
-    #     return self.rotation_mat
-    #
-    # @property
-    # def F(self) -> dict[str, np.ndarray]:
-    #     """ alias of fundamental_mat """
-    #     return self.fundamental_mat
-    #
-    # @property
-    # def P(self) -> np.ndarray:
-    #     """ alias of projection_mat """
-    #     return self.projection_mat
 
     def undistort_video(self, video_path: Union[str, Path], output_path: Union[str, Path]):
         """ Undistort a video using the camera parameters
@@ -129,7 +82,7 @@ class CameraParameter:
         fps = int(cap.get(cv2.CAP_PROP_FPS))
 
         # Create a VideoWriter object
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        fourcc = cv2.VideoWriter.fourcc(*'mp4v')
         out = cv2.VideoWriter(str(output_path), fourcc, fps, (frame_width, frame_height))
 
         for i in trange(total_frames, desc="Undistorting frames:", leave=False):
@@ -152,7 +105,7 @@ class CameraParameter:
         cap.release()
         out.release()
 
-    def undistort_image(self, image: npt.NDArray[np.uint8]) -> npt.NDArray[np.uint8]:
+    def undistort_image(self, image: cvt.MatLike) -> cvt.MatLike:
         """ Undistort an image using the camera parameters
 
         Args:
@@ -163,4 +116,5 @@ class CameraParameter:
             np.ndarray
                 The undistorted image
         """
+
         return cv2.undistort(image.copy(), self.intrinsic_mat, self.distortion_coeffs)
