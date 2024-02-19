@@ -8,3 +8,7 @@ type-check:
 test:
 	pytest .
 
+# Format code
+format:
+	black .
+	isort .
