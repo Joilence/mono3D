@@ -100,8 +100,10 @@ def test_detect_calibration_images(
 
         # Assert
         assert detection is not None, f"detection should not be None for {image_path.stem}"
+
         detection.save_to(result_dir / f"{image_path.stem}.npz")
         det_ans = CharucoBoardDetection.load_from(answer_dir / f"{image_path.stem}.npz")
+
         assert detection.aruco_marker_ids.shape == det_ans.aruco_marker_ids.shape, \
             f"aruco_marker_ids in {image_path.stem} should have shape {det_ans.aruco_marker_ids.shape} while got {detection.aruco_marker_ids.shape}"
         assert detection.has_equal_ids(det_ans), \

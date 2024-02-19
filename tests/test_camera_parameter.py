@@ -68,9 +68,20 @@ def test_calibrate_camera_happy_path(
     # Assert
     assert calib_res is not None, "Failed on happy path - calibration_result should not be None"
     calib_res.save_to(calib_res_dir / "calibration_result.npz")
-    assert np.allclose(calib_res.K, calib_ans.K), \
-        "calibration_result.intrinsic_mat should be equal to calibration_answer.intrinsic_mat, " \
-        f"got result:\n{calib_res.K}\nwhile answer is:\n{calib_ans.K}"
-    assert np.allclose(calib_res.distortion_coeffs, calib_ans.distortion_coeffs), \
-        "calibration_result.distortion_coeffs should be equal to calibration_answer.distortion_coeffs, " \
-        f"got result:\n{calib_res.distortion_coeffs}\nwhile answer is:\n{calib_ans.distortion_coeffs}"
+
+    intrinsic_mat_same_shape = (calib_res.K.shape == calib_ans.K.shape)
+    intrinsic_mat_same_value = np.allclose(calib_res.K.reshape(-1), calib_ans.K.reshape(-1))
+
+    assert intrinsic_mat_same_shape and intrinsic_mat_same_value, \
+        "Incorrect intrinsic matrix, " \
+        f"same shape: {intrinsic_mat_same_shape}, same value: {intrinsic_mat_same_value}\n" \
+        f"got:\n{calib_res.K}\nexpect:\n{calib_ans.K}\n"
+
+    distorsion_coeffs_same_shape = (calib_res.distortion_coeffs.shape == calib_ans.distortion_coeffs.shape)
+    distorsion_coeffs_same_value = np.allclose(calib_res.distortion_coeffs.reshape(-1),
+                                               calib_ans.distortion_coeffs.reshape(-1))
+
+    assert distorsion_coeffs_same_shape and distorsion_coeffs_same_value, \
+        "Incorrect distortion coefficients, " \
+        f"same shape: {distorsion_coeffs_same_shape}, same value: {distorsion_coeffs_same_value}\n" \
+        f"got:\n{calib_res.distortion_coeffs}\nexpect:\n{calib_ans.distortion_coeffs}\n"
