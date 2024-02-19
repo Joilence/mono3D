@@ -23,9 +23,12 @@ def detection_answer_dir() -> Path:
     Fixture to answer directory for the detection results
     """
 
-    detection_answer_dir = Path("tests/images/cam_calib_charuco_images/detection_answers")
-    assert detection_answer_dir.exists(), \
-        f"detection_answer_dir {detection_answer_dir} does not exist"
+    detection_answer_dir = Path(
+        "tests/images/cam_calib_charuco_images/detection_answers"
+    )
+    assert (
+        detection_answer_dir.exists()
+    ), f"detection_answer_dir {detection_answer_dir} does not exist"
     return detection_answer_dir
 
 
@@ -45,8 +48,9 @@ def calibration_image_dir() -> Path:
     Fixture to load the charuco board image
     """
     calibration_image_dir = Path("tests/images/cam_calib_charuco_images")
-    assert calibration_image_dir.exists(), \
-        f"calibration_image_dir {calibration_image_dir} does not exist"
+    assert (
+        calibration_image_dir.exists()
+    ), f"calibration_image_dir {calibration_image_dir} does not exist"
     return calibration_image_dir
 
 

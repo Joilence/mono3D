@@ -7,7 +7,7 @@ import cv2
 import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
-from tqdm.auto import trange
+from tqdm.auto import trange, tqdm
 
 
 class CameraParameter:
@@ -28,16 +28,16 @@ class CameraParameter:
     """
 
     def __init__(
-            self,
-            intrinsic_mat: npt.NDArray[np.float64],  # shape: (3, 3)
-            distortion_coeffs: npt.NDArray[np.float64],  # shape: (5, 1)
+        self,
+        intrinsic_mat: npt.NDArray[np.float64],  # shape: (3, 3)
+        distortion_coeffs: npt.NDArray[np.float64],  # shape: (5, 1)
     ):
         # camera parameters
         self.intrinsic_mat = intrinsic_mat
         self.distortion_coeffs = distortion_coeffs
 
     def save_to(self, file_path: Union[str, Path]):
-        """ Save camera parameters to a file """
+        """Save camera parameters to a file"""
         np.savez(
             str(file_path),
             intrinsic_mat=self.intrinsic_mat,
@@ -46,7 +46,7 @@ class CameraParameter:
 
     @staticmethod
     def load_from(file_path: Union[str, Path]) -> "CameraParameter":
-        """ Load camera parameters from a file """
+        """Load camera parameters from a file"""
         data = np.load(str(file_path))
         return CameraParameter(
             intrinsic_mat=data["intrinsic_mat"],
@@ -55,11 +55,13 @@ class CameraParameter:
 
     @property
     def K(self) -> npt.NDArray[np.float64]:
-        """ alias of intrinsic_mat """
+        """alias of intrinsic_mat"""
         return self.intrinsic_mat
 
-    def undistort_video(self, video_path: Union[str, Path], output_path: Union[str, Path]):
-        """ Undistort a video using the camera parameters
+    def undistort_video(
+        self, video_path: Union[str, Path], output_path: Union[str, Path]
+    ):
+        """Undistort a video using the camera parameters
 
         Args:
             video_path: Union[str, Path]
@@ -72,7 +74,7 @@ class CameraParameter:
         """
         cap = cv2.VideoCapture(str(video_path))
         if not cap.isOpened():
-            print(f"Error: Unable to open video file '{video_path}'")
+            tqdm.write(f"Error: Unable to open video file '{video_path}'")
             return
 
         # Get source video specs
@@ -82,8 +84,10 @@ class CameraParameter:
         fps = int(cap.get(cv2.CAP_PROP_FPS))
 
         # Create a VideoWriter object
-        fourcc = cv2.VideoWriter.fourcc(*'mp4v')
-        out = cv2.VideoWriter(str(output_path), fourcc, fps, (frame_width, frame_height))
+        fourcc = cv2.VideoWriter.fourcc(*"mp4v")
+        out = cv2.VideoWriter(
+            str(output_path), fourcc, fps, (frame_width, frame_height)
+        )
 
         for i in trange(total_frames, desc="Undistorting frames:", leave=False):
             # Read a frame from the video
@@ -91,8 +95,11 @@ class CameraParameter:
 
             # Break the loop if unable to read the next frame
             if not ret:
-                print(f'WARNING: Read frame failed at {i}, total frames: {total_frames}.'
-                      f'If video is not corrupted, please try to convert the video to mp4 again with, e.g., ffmpeg.')
+                tqdm.write(
+                    f"WARNING: Read frame failed at {i}, total frames: {total_frames}."
+                    f"If video {video_path.as_posix()} is not corrupted, "
+                    f"please try to convert the video to mp4 again with, e.g., ffmpeg."
+                )
                 break
 
             # Undistort the frame
@@ -106,7 +113,7 @@ class CameraParameter:
         out.release()
 
     def undistort_image(self, image: cvt.MatLike) -> cvt.MatLike:
-        """ Undistort an image using the camera parameters
+        """Undistort an image using the camera parameters
 
         Args:
             image: np.ndarray

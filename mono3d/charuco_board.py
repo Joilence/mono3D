@@ -39,13 +39,13 @@ class CharucoBoard:
     """
 
     def __init__(
-            self,
-            aruco_dict: Optional[cv2.aruco.Dictionary] = None,
-            n_horizontal_squares: int = 5,
-            n_vertical_squares: int = 10,
-            board_square_length: float = 55.0,
-            aruco_marker_length: float = 43.0,
-            use_board_legacy_pattern: bool = True,
+        self,
+        aruco_dict: Optional[cv2.aruco.Dictionary] = None,
+        n_horizontal_squares: int = 5,
+        n_vertical_squares: int = 10,
+        board_square_length: float = 55.0,
+        aruco_marker_length: float = 43.0,
+        use_board_legacy_pattern: bool = True,
     ):
         if aruco_dict is None:  # TODO: Necessary? Is cv2.aruco.Dictionary mutable?
             self.aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
@@ -60,14 +60,13 @@ class CharucoBoard:
             size=(self.n_horizontal_squares, self.n_vertical_squares),
             squareLength=self.board_square_length,
             markerLength=self.aruco_marker_length,
-            dictionary=self.aruco_dict
+            dictionary=self.aruco_dict,
         )
         if use_board_legacy_pattern:
             tqdm.write("WARNING: Using the legacy CharucoBoard pattern.")
             self.board.setLegacyPattern(use_board_legacy_pattern)
         self.aruco_detector = cv2.aruco.ArucoDetector(
-            dictionary=self.aruco_dict,
-            detectorParams=cv2.aruco.DetectorParameters()
+            dictionary=self.aruco_dict, detectorParams=cv2.aruco.DetectorParameters()
         )
         self.charuco_detector = cv2.aruco.CharucoDetector(board=self.board)
 
@@ -80,7 +79,8 @@ class CharucoBoard:
             image (cvt.MatLike): The input image for marker detection.
 
         Returns:
-            Tuple[int, CharucoBoardDetection]: A tuple containing the number of detected charuco corners and
+            Tuple[int, CharucoBoardDetection]:
+                A tuple containing the number of detected charuco corners and
                 detection details
         """
         # check if the image is empty
@@ -98,15 +98,19 @@ class CharucoBoard:
         if aruco_ids is None:
             return None
 
-        # iterates over each detected Aruco corner to find the sub-pixel accurate location
-        criteria = (cv2.TermCriteria_EPS + cv2.TermCriteria_MAX_ITER, 100, 0.00001)  # 0.00001 come from Alex
+        # iterates over each Aruco corner to find the sub-pixel accurate location
+        criteria = (
+            cv2.TermCriteria_EPS + cv2.TermCriteria_MAX_ITER,
+            100,
+            0.00001,
+        )
         for aruco_corner in aruco_corners:
             cv2.cornerSubPix(
                 image=image,
                 corners=aruco_corner,
                 winSize=(3, 3),
                 zeroZone=(-1, -1),
-                criteria=criteria
+                criteria=criteria,
             )
 
         charuco_corners, charuco_ids, _, _ = self.charuco_detector.detectBoard(
@@ -124,13 +128,13 @@ class CharucoBoard:
             aruco_marker_corners=aruco_corners,
             aruco_marker_ids=aruco_ids,
             charuco_corners=charuco_corners,
-            charuco_ids=charuco_ids
+            charuco_ids=charuco_ids,
         )
 
     def calibrate_camera(
-            self,
-            image_size: Tuple[int, ...],
-            detections: Iterable[CharucoBoardDetection],
+        self,
+        image_size: Tuple[int, ...],
+        detections: Iterable[CharucoBoardDetection],
     ) -> Optional[CameraParameter]:
         """
         Calibrates the camera using Charuco detections.
@@ -168,7 +172,7 @@ class CharucoBoard:
             _,
             intrinsics_std,
             extrinsics_std,
-            per_view_errors
+            per_view_errors,
         ) = cv2.aruco.calibrateCameraCharucoExtended(
             charucoCorners=all_corners_flatten,
             charucoIds=all_ids_flatten,
@@ -188,19 +192,18 @@ class CharucoBoard:
             distortion_coeffs,
             imageSize=image_size,
             alpha=1,  # all pixels are retained with some extra black images
-            newImgSize=image_size
+            newImgSize=image_size,
         )
 
         return CameraParameter(
             # TODO: should change the typing in the class?
             intrinsic_mat=new_camera_matrix.astype(np.float64, copy=False),
-            distortion_coeffs=distortion_coeffs.astype(np.float64, copy=False)
+            distortion_coeffs=distortion_coeffs.astype(np.float64, copy=False),
         )
 
     @staticmethod
     def draw_detection(
-            image: cvt.MatLike,
-            detection: CharucoBoardDetection
+        image: cvt.MatLike, detection: CharucoBoardDetection
     ) -> cvt.MatLike:
         """
         Draw charuco detection on an image
@@ -216,7 +219,7 @@ class CharucoBoard:
         cv2.aruco.drawDetectedMarkers(
             image=plotted,
             corners=detection.aruco_marker_corners,
-            ids=detection.aruco_marker_ids
+            ids=detection.aruco_marker_ids,
         )
         if detection.charuco_corners is None or detection.charuco_ids is None:
             tqdm.write("WARNING: No charuco corners found in the detection")
@@ -238,7 +241,11 @@ if __name__ == "__main__":
 
     board = CharucoBoard()
     detection = board.detect(test_image)
-    if detection is None or detection.charuco_corners is None or detection.charuco_ids is None:
+    if (
+        detection is None
+        or detection.charuco_corners is None
+        or detection.charuco_ids is None
+    ):
         print("No detections found")
         exit(1)
     n_markers = len(detection.aruco_marker_ids)
@@ -276,7 +283,7 @@ if __name__ == "__main__":
     image_shape = cv2.imread(str(test_calib_image_paths[0])).shape[:2]
     calibration = board.calibrate_camera(image_shape, detections)
 
-    np.set_printoptions(precision=8, suppress=True, floatmode='fixed')
+    np.set_printoptions(precision=8, suppress=True, floatmode="fixed")
     print("Camera matrix:")
     if calibration is None:
         print("Calibration failed")
