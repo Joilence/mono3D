@@ -1,3 +1,5 @@
+"""fixtures for mono3d tests"""
+
 from pathlib import Path
 from typing import Iterable
 

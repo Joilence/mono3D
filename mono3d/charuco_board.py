@@ -1,4 +1,4 @@
-""" CharucoBoard class compatible with both OpenCV above and below 4.6.0 """
+"""CharucoBoard class"""
 
 from pathlib import Path
 from typing import Optional, Tuple, List, Any, Iterable
@@ -108,8 +108,8 @@ class CharucoBoard:
                 zeroZone=(-1, -1),
                 criteria=criteria
             )
-        # While OpenCV >= 4.6.0, and LEGACY is False, aruco_detector and charuco_detector are available
-        charuco_corners, charuco_ids, _, _ = self.charuco_detector.detectBoard(  # type: ignore
+
+        charuco_corners, charuco_ids, _, _ = self.charuco_detector.detectBoard(
             image=image,
             markerCorners=aruco_corners,
             markerIds=aruco_ids,
@@ -135,9 +135,9 @@ class CharucoBoard:
         """
         Calibrates the camera using Charuco detections.
 
-        It collects data from multiple image and detection pairs and computes the camera
-        intrinsic parameters and distortion coefficients. The calibration results are returned
-        as a CameraParameter object.
+        It collects data from multiple image and detection pairs and computes the camera's intrinsic parameters and
+        distortion coefficients.
+        The calibration results are returned as a CameraParameter object.
 
         Args:
             image_size (Tuple[int, ...]): The size of the image used for calibration.
