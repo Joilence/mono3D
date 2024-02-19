@@ -272,6 +272,9 @@ class CharucoBoard:
             corners=detection.aruco_marker_corners,
             ids=detection.aruco_marker_ids
         )
+        if detection.charuco_corners is None or detection.charuco_ids is None:
+            tqdm.write("WARNING: No charuco corners found in the detection")
+            return plotted
         cv2.aruco.drawDetectedCornersCharuco(
             image=plotted,
             charucoCorners=detection.charuco_corners,

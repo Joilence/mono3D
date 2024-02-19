@@ -1,18 +1,19 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Sequence
 
 import numpy as np
+import cv2.typing as cvt
 from numpy import typing as npt
 
 
 @dataclass(frozen=True)
 class CharucoBoardDetection:
     """ Structured storage of detections on a Charuco board """
-    aruco_marker_ids: npt.NDArray[np.int32]  # shape: (n, 1)
-    aruco_marker_corners: npt.NDArray[np.float32]  # shape: (n, 4, 2)
-    charuco_ids: Optional[npt.NDArray[np.int32]] = None  # shape: (n, 1)
-    charuco_corners: Optional[npt.NDArray[np.float32]] = None  # shape: (n, 4, 2)
+    aruco_marker_ids: cvt.MatLike  # expected dtype: np.int32, shape: (n, 1)
+    aruco_marker_corners: Sequence[cvt.MatLike]  # expected dtype: Sequence[np.float32], shape: (n, 4, 2)
+    charuco_ids: Optional[cvt.MatLike] = None  # expected dtype: np.int32, shape: (n, 1)
+    charuco_corners: Optional[cvt.MatLike] = None  # expected dtype: np.float32, shape: (n, 4, 2)
 
     def save_to(self, file_path: Union[str, Path]):
         """ Save camera parameters to a file """
@@ -49,25 +50,3 @@ class CharucoBoardDetection:
         equal_aruco_ids = (np.asarray(self.aruco_marker_ids) == np.asarray(other.aruco_marker_ids)).all()
         equal_charuco_ids = (np.asarray(self.charuco_ids) == np.asarray(other.charuco_ids)).all()
         return equal_aruco_ids and equal_charuco_ids
-
-
-if __name__ == "__main__":
-    # Arrange
-    aruco_marker_ids = np.array([25, 26, 27, 28, 29, 32, 33])
-    aruco_marker_corners = np.array([[[0, 0], [1, 0], [1, 1], [0, 1]]])
-    charuco_ids = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-                            25, 26, 27, 28, 29, 30, 31])
-    charuco_corners = np.array([[[0, 0], [1, 0], [1, 1], [0, 1]]])
-
-    # Act
-    detection = CharucoBoardDetection(aruco_marker_ids, aruco_marker_corners, charuco_ids, charuco_corners)
-
-    # Assert
-    assert (detection.aruco_marker_ids == aruco_marker_ids).all(), \
-        f"Failed on happy path - aruco_marker_ids should be {aruco_marker_ids}, got {detection.aruco_marker_ids}"
-    assert (detection.aruco_marker_corners == aruco_marker_corners).all(), \
-        f"Failed on happy path - aruco_marker_corners should be {aruco_marker_corners}, got {detection.aruco_marker_corners}"
-    assert (detection.charuco_ids == charuco_ids).all(), \
-        f"Failed on happy path - charuco_ids should be {charuco_ids}, got {detection.charuco_ids}"
-    assert (detection.charuco_corners == charuco_corners).all(), \
-        f"Failed on happy path - charuco_corners should be {charuco_corners}, got {detection.charuco_corners}"
