@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import pytest
 
-from mono3d import CharucoBoard, CameraParameter
+from mono3d import CameraParameter, CharucoBoard
 from mono3d.charuco_board_detection import CharucoBoardDetection
 
 

@@ -2,10 +2,10 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Union, Any, Sequence
+from typing import Any, Optional, Sequence, Union
 
-import numpy as np
 import cv2.typing as cvt
+import numpy as np
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,7 @@
 """CharucoBoard class"""
 
 from pathlib import Path
-from typing import Optional, Tuple, List, Any, Iterable
+from typing import Any, Iterable, List, Optional, Tuple
 
 import cv2
 import cv2.typing as cvt

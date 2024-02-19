@@ -7,7 +7,7 @@ import cv2
 import cv2.typing as cvt
 import numpy as np
 import numpy.typing as npt
-from tqdm.auto import trange, tqdm
+from tqdm.auto import tqdm, trange
 
 
 class CameraParameter:
