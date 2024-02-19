@@ -101,7 +101,7 @@ class CharucoBoard:
         # iterates over each detected Aruco corner to find the sub-pixel accurate location
         criteria = (cv2.TermCriteria_EPS + cv2.TermCriteria_MAX_ITER, 100, 0.00001)  # 0.00001 come from Alex
         for aruco_corner in aruco_corners:
-            aruco_corner = cv2.cornerSubPix(
+            cv2.cornerSubPix(
                 image=image,
                 corners=aruco_corner,
                 winSize=(3, 3),
