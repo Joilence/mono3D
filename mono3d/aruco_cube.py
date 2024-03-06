@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Sequence
 
 import cv2
 import cv2.typing as cvt
@@ -15,11 +15,50 @@ from mono3d import CameraParameter
 
 @dataclass
 class ArucoDetection:
-    corners: cvt.MatLike
+    """
+    Represents an ArUco marker detection result.
+
+    Attributes:
+        corners: A np.ndarray containing the corner points of the detected markers.
+        ids: A np.ndarray containing the IDs of the detected markers.
+    """
+
+    corners: Sequence[cvt.MatLike]
     ids: cvt.MatLike
 
 
 class ArucoCube:
+    """
+    Represents a 3D coordinate system built from a cube with ArUco markers.
+
+    Attributes:
+        aruco_dict: aruco.Dictionary
+            The dictionary of ArUco markers.
+        aruco_params: aruco.DetectorParameters
+            The parameters for the ArUco marker detector.
+        marker_length: float
+            The length of the ArUco markers in millimeters.
+        detector: aruco.ArucoDetector
+            The ArUco marker detector.
+        cube_ids: np.ndarray
+            The IDs of the ArUco markers on the cube.
+        cube: aruco.Board
+            The ArUco board representing the cube.
+
+    Methods:
+        detect(image: cvt.MatLike) -> ArucoDetection
+            Detect ArUco markers in an image.
+        draw(
+            image: cvt.MatLike,
+            cam_param: Optional[CameraParameter] = None,
+            detection: Optional[ArucoDetection] = None,
+            draw_cube_axis: bool = True,
+            draw_markers: bool = False,
+            draw_markers_axes: bool = False,
+            min_markers: int = 1,
+        ) -> cvt.MatLike
+            Draw the axes and detectors on an image with a cube of markers.
+    """
 
     def __init__(
         self,
@@ -33,10 +72,10 @@ class ArucoCube:
         self.marker_length = marker_length
         self.cube_ids = np.array([0, 1, 2, 3, 4, 5])
         c_pt = marker_length / 2
-        board_ids = np.array([[0], [1], [2], [3], [4], [5]], dtype=np.int32)
+        marker_ids = np.array([[0], [1], [2], [3], [4], [5]], dtype=np.int32)
         # X axis in blue color, Y axis in green color and Z axis in red color.
         # order of corners is clockwise
-        board_corners = [
+        marker_corners = [
             np.array(
                 [
                     [c_pt, -c_pt, c_pt],
@@ -92,10 +131,10 @@ class ArucoCube:
                 dtype=np.float32,
             ),
         ]
-        self.board = aruco.Board(
-            objPoints=board_corners,
+        self.cube = aruco.Board(
+            objPoints=marker_corners,
             dictionary=self.aruco_dict,
-            ids=board_ids,
+            ids=marker_ids,
         )
 
     def detect(self, image: cvt.MatLike) -> ArucoDetection:
@@ -106,16 +145,15 @@ class ArucoCube:
         corners, ids, _ = self.detector.detectMarkers(gray)
         return ArucoDetection(corners=corners, ids=ids)
 
-    def draw_markers(
-        self,
+    @staticmethod
+    def _draw_markers(
         image: cvt.MatLike,
-        detection: Optional[ArucoDetection] = None,
+        detection: ArucoDetection,
     ) -> cvt.MatLike:
         """Draw the detected ArUco markers on an image"""
-        detection = detection or self.detect(image)
         return aruco.drawDetectedMarkers(image, detection.corners, detection.ids)
 
-    def draw_axis(
+    def _draw_markers_axes(
         self,
         image: cvt.MatLike,
         cam_param: CameraParameter,
@@ -143,28 +181,17 @@ class ArucoCube:
 
         return image
 
-    def draw_cube_axis(
+    def _draw_cube_axis(
         self,
         image: cvt.MatLike,
         cam_param: CameraParameter,
-        detection: Optional[ArucoDetection] = None,
-        draw_markers: bool = False,
-        draw_markers_axes: bool = False,
-        min_markers: int = 1,
+        detection: ArucoDetection,
     ) -> cvt.MatLike:
-        """Draw the 3D axis on an image with a cube of markers"""
-        image = image.copy()
-        detection = detection or self.detect(image)
-        if detection.ids is None or len(detection.ids) < min_markers:
-            return image
-        if draw_markers:
-            image = self.draw_markers(image, detection)
-        if draw_markers_axes:
-            image = self.draw_axis(image, cam_param, detection)
+        """Draw the 3D axis of the cube on an image"""
         _, rvecs, tvecs = aruco.estimatePoseBoard(
             corners=detection.corners,
             ids=detection.ids,
-            board=self.board,
+            board=self.cube,
             cameraMatrix=cam_param.K,
             distCoeffs=cam_param.distortion_coeffs,
             rvec=np.empty(1),
@@ -179,6 +206,57 @@ class ArucoCube:
             length=self.marker_length,
         )
 
+    def draw(
+        self,
+        image: cvt.MatLike,
+        cam_param: Optional[CameraParameter] = None,
+        detection: Optional[ArucoDetection] = None,
+        draw_cube_axis: bool = True,
+        draw_markers: bool = False,
+        draw_markers_axes: bool = False,
+        min_markers: int = 1,
+    ) -> cvt.MatLike:
+        """
+        Draw the axes and detectors on an image with a cube of markers.
+        By default, it only draws the cube axis.
+
+        Args:
+            image (cvt.MatLike):
+                The input image
+            cam_param (CameraParameter, optional):
+                The camera parameters, default to None.
+            detection (ArucoDetection, optional):
+                The detected markers, default to None.
+            draw_cube_axis (bool, optional):
+                Whether to draw the cube axis, default to True.
+            draw_markers (bool, optional):
+                Whether to draw the markers, default to False.
+            draw_markers_axes (bool, optional):
+                Whether to draw the markers axes, default to False.
+            min_markers (int, optional):
+                The minimum number of markers to draw, default to 1.
+
+        Returns:
+            cvt.MatLike: The output image
+        """
+        image = image.copy()
+        detection = detection or self.detect(image)
+
+        if detection.ids is None or len(detection.ids) < min_markers:
+            return image
+
+        if cam_param is None and (draw_markers_axes or draw_cube_axis):
+            raise ValueError("cam_param is required to draw the axis.")
+
+        if draw_markers:
+            image = self._draw_markers(image, detection)
+        if draw_markers_axes:
+            image = self._draw_markers_axes(image, cam_param, detection)
+        if draw_cube_axis:
+            image = self._draw_cube_axis(image, cam_param, detection)
+
+        return image
+
 
 if __name__ == "__main__":
 
@@ -187,29 +265,8 @@ if __name__ == "__main__":
     cam_param = CameraParameter.load_from("../tests/images/cam_param.npz")
     aruco_cube = ArucoCube()
 
-    # visualize the detected markers
-    # image_with_markers = aruco_cube.draw_markers(test_image, detection)
-    # cv2.imshow("Aruco markers", image_with_markers)
-    # cv2.waitKey(0)
-
-    # visualize the detected markers with axis
-    # image_with_axis = aruco_cube.draw_axis(
-    #     test_image,
-    #     CameraParameter.load_from("../tests/images/cam_param.npz"),
-    #     detection,
-    # )
-
-    # image_with_cube_axis = aruco_cube.draw_cube_axis(
-    #     test_image,
-    #     cam_param,
-    #     draw_markers=True,
-    # )
-    # cv2.imshow("Aruco markers with axis", image_with_cube_axis)
-
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
     scale = 0.5
+    stream = False
     # visualize the cube axis from a video
     video_paths = list(test_video_dir.glob("*.MP4"))
     for vp in tqdm(
@@ -243,15 +300,17 @@ if __name__ == "__main__":
             ret, frame = vc.read()
             if not ret:
                 break
-            axis_frame = aruco_cube.draw_cube_axis(
+            axis_frame = aruco_cube.draw(
                 frame,
                 cam_param,
+                draw_cube_axis=True,
                 draw_markers=True,
                 draw_markers_axes=False,
             )
             # scale image
             if scale != 1:
                 axis_frame = cv2.resize(axis_frame, (width, height))
+
             vw.write(axis_frame)
 
         vc.release()
