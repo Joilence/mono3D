@@ -1,12 +1,14 @@
 """ class to build a 3D coordinate system from a cube with ArUco markers """
 
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
 
 import cv2
 import cv2.typing as cvt
 import numpy as np
 from cv2 import aruco
+from tqdm.auto import tqdm
 
 from mono3d import CameraParameter
 
@@ -30,18 +32,68 @@ class ArucoCube:
         self.detector = aruco.ArucoDetector(self.aruco_dict, self.aruco_params)
         self.marker_length = marker_length
         self.cube_ids = np.array([0, 1, 2, 3, 4, 5])
-        self.center_unit = marker_length / 2
-        self.object_points = np.array(
-            [
-                [-self.center_unit, -self.center_unit, 0],
-                [self.center_unit, -self.center_unit, 0],
-                [self.center_unit, self.center_unit, 0],
-                [-self.center_unit, self.center_unit, 0],
-                [-self.center_unit, -self.center_unit, -self.center_unit],
-                [self.center_unit, -self.center_unit, -self.center_unit],
-                [self.center_unit, self.center_unit, -self.center_unit],
-                [-self.center_unit, self.center_unit, -self.center_unit],
-            ]
+        c_pt = marker_length / 2
+        board_ids = np.array([[0], [1], [2], [3], [4], [5]], dtype=np.int32)
+        board_corners = [
+            np.array(
+                [
+                    [-c_pt, c_pt, c_pt],
+                    [c_pt, c_pt, c_pt],
+                    [c_pt, -c_pt, c_pt],
+                    [-c_pt, -c_pt, c_pt],
+                ],
+                dtype=np.float32,
+            ),
+            np.array(
+                [
+                    [-c_pt, -c_pt, c_pt],
+                    [c_pt, -c_pt, c_pt],
+                    [c_pt, -c_pt, -c_pt],
+                    [-c_pt, -c_pt, -c_pt],
+                ],
+                dtype=np.float32,
+            ),
+            np.array(
+                [
+                    [-c_pt, c_pt, c_pt],
+                    [-c_pt, -c_pt, c_pt],
+                    [-c_pt, -c_pt, -c_pt],
+                    [-c_pt, c_pt, -c_pt],
+                ],
+                dtype=np.float32,
+            ),
+            np.array(
+                [
+                    [c_pt, c_pt, c_pt],
+                    [-c_pt, c_pt, c_pt],
+                    [-c_pt, c_pt, -c_pt],
+                    [c_pt, c_pt, -c_pt],
+                ],
+                dtype=np.float32,
+            ),
+            np.array(
+                [
+                    [c_pt, -c_pt, c_pt],
+                    [c_pt, c_pt, c_pt],
+                    [c_pt, c_pt, -c_pt],
+                    [c_pt, -c_pt, -c_pt],
+                ],
+                dtype=np.float32,
+            ),
+            np.array(
+                [
+                    [-c_pt, -c_pt, -c_pt],
+                    [c_pt, -c_pt, -c_pt],
+                    [c_pt, c_pt, -c_pt],
+                    [-c_pt, c_pt, -c_pt],
+                ],
+                dtype=np.float32,
+            ),
+        ]
+        self.board = aruco.Board(
+            objPoints=board_corners,
+            dictionary=self.aruco_dict,
+            ids=board_ids,
         )
 
     def detect(self, image: cvt.MatLike) -> ArucoDetection:
@@ -52,12 +104,13 @@ class ArucoCube:
         corners, ids, _ = self.detector.detectMarkers(gray)
         return ArucoDetection(corners=corners, ids=ids)
 
-    @staticmethod
     def draw_markers(
+        self,
         image: cvt.MatLike,
-        detection: ArucoDetection,
+        detection: Optional[ArucoDetection] = None,
     ) -> cvt.MatLike:
         """Draw the detected ArUco markers on an image"""
+        detection = detection or self.detect(image)
         return aruco.drawDetectedMarkers(image, detection.corners, detection.ids)
 
     def draw_axis(
@@ -87,6 +140,39 @@ class ArucoCube:
             )
 
         return image
+
+    def draw_cube_axis(
+        self,
+        image: cvt.MatLike,
+        cam_param: CameraParameter,
+        detection: Optional[ArucoDetection] = None,
+        draw_markers: bool = False,
+        min_markers: int = 2,
+    ) -> cvt.MatLike:
+        """Draw the 3D axis on an image with a cube of markers"""
+        image = image.copy()
+        detection = detection or self.detect(image)
+        if detection.ids is None or len(detection.ids) < min_markers:
+            return image
+        if draw_markers:
+            image = self.draw_markers(image, detection)
+        _, rvecs, tvecs = aruco.estimatePoseBoard(
+            corners=detection.corners,
+            ids=detection.ids,
+            board=self.board,
+            cameraMatrix=cam_param.K,
+            distCoeffs=cam_param.distortion_coeffs,
+            rvec=np.empty(1),
+            tvec=np.empty(1),
+        )
+        return cv2.drawFrameAxes(
+            image=image,
+            cameraMatrix=cam_param.K,
+            distCoeffs=cam_param.distortion_coeffs,
+            rvec=rvecs,
+            tvec=tvecs,
+            length=self.marker_length,
+        )
 
 
 if __name__ == "__main__":
