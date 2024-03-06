@@ -34,13 +34,15 @@ class ArucoCube:
         self.cube_ids = np.array([0, 1, 2, 3, 4, 5])
         c_pt = marker_length / 2
         board_ids = np.array([[0], [1], [2], [3], [4], [5]], dtype=np.int32)
+        # X axis in blue color, Y axis in green color and Z axis in red color.
+        # order of corners is clockwise
         board_corners = [
             np.array(
                 [
-                    [-c_pt, c_pt, c_pt],
-                    [c_pt, c_pt, c_pt],
                     [c_pt, -c_pt, c_pt],
                     [-c_pt, -c_pt, c_pt],
+                    [-c_pt, c_pt, c_pt],
+                    [c_pt, c_pt, c_pt],
                 ],
                 dtype=np.float32,
             ),
@@ -147,7 +149,8 @@ class ArucoCube:
         cam_param: CameraParameter,
         detection: Optional[ArucoDetection] = None,
         draw_markers: bool = False,
-        min_markers: int = 2,
+        draw_markers_axes: bool = False,
+        min_markers: int = 1,
     ) -> cvt.MatLike:
         """Draw the 3D axis on an image with a cube of markers"""
         image = image.copy()
@@ -156,6 +159,8 @@ class ArucoCube:
             return image
         if draw_markers:
             image = self.draw_markers(image, detection)
+        if draw_markers_axes:
+            image = self.draw_axis(image, cam_param, detection)
         _, rvecs, tvecs = aruco.estimatePoseBoard(
             corners=detection.corners,
             ids=detection.ids,
@@ -177,9 +182,10 @@ class ArucoCube:
 
 if __name__ == "__main__":
 
+    test_video_dir = Path("../../siberian_jay/mapping_videos")
     test_image = cv2.imread("../tests/images/aruco_cube.jpg")
+    cam_param = CameraParameter.load_from("../tests/images/cam_param.npz")
     aruco_cube = ArucoCube()
-    detection = aruco_cube.detect(test_image)
 
     # visualize the detected markers
     # image_with_markers = aruco_cube.draw_markers(test_image, detection)
@@ -187,12 +193,66 @@ if __name__ == "__main__":
     # cv2.waitKey(0)
 
     # visualize the detected markers with axis
-    image_with_axis = aruco_cube.draw_axis(
-        test_image,
-        CameraParameter.load_from("../tests/images/cam_param.npz"),
-        detection,
-    )
-    cv2.imshow("Aruco markers with axis", image_with_axis)
-    cv2.waitKey(0)
+    # image_with_axis = aruco_cube.draw_axis(
+    #     test_image,
+    #     CameraParameter.load_from("../tests/images/cam_param.npz"),
+    #     detection,
+    # )
 
-    cv2.destroyAllWindows()
+    # image_with_cube_axis = aruco_cube.draw_cube_axis(
+    #     test_image,
+    #     cam_param,
+    #     draw_markers=True,
+    # )
+    # cv2.imshow("Aruco markers with axis", image_with_cube_axis)
+
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
+
+    scale = 0.5
+    # visualize the cube axis from a video
+    video_paths = list(test_video_dir.glob("*.MP4"))
+    for vp in tqdm(
+        video_paths, desc="Processing videos", bar_format="{l_bar}{bar:10}{r_bar}"
+    ):
+        vc = cv2.VideoCapture(str(vp))
+        width = int(vc.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(vc.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = int(vc.get(cv2.CAP_PROP_FPS))
+        n_frames = int(vc.get(cv2.CAP_PROP_FRAME_COUNT))
+        tqdm.write(f"{vp.name}: {width}x{height} @ {fps} fps, {n_frames} frames")
+
+        if scale != 1:
+            width = int(width * scale)
+            height = int(height * scale)
+            tqdm.write(f"Resizing to {width}x{height}")
+
+        vw = cv2.VideoWriter(
+            str(vp.with_suffix(".axis.mp4")),
+            cv2.VideoWriter.fourcc(*"mp4v"),
+            fps,
+            (width, height),
+        )
+
+        for _ in tqdm(
+            range(n_frames),
+            leave=False,
+            desc=f"Processing {vp.name}",
+            bar_format="{l_bar}{bar:10}{r_bar}",
+        ):
+            ret, frame = vc.read()
+            if not ret:
+                break
+            axis_frame = aruco_cube.draw_cube_axis(
+                frame,
+                cam_param,
+                draw_markers=True,
+                draw_markers_axes=False,
+            )
+            # scale image
+            if scale != 1:
+                axis_frame = cv2.resize(axis_frame, (width, height))
+            vw.write(axis_frame)
+
+        vc.release()
+        vw.release()
