@@ -17,7 +17,7 @@ def calibration_answer_dir() -> Path:
     Fixture to answer directory for the calibration results
     """
 
-    calib_ans_dir = Path("tests/images/cam_calib_charuco_images/calibration_answer")
+    calib_ans_dir = Path("tests/data/cam_calib_charuco_images/calibration_answer")
     assert (
         calib_ans_dir.exists()
     ), f"calibration_answer_dir {calib_ans_dir} does not exist"
@@ -64,7 +64,7 @@ def test_calibrate_camera_happy_path(
     example_img = cv2.imread(str(next(iter(calibration_image_paths))))
     image_size = example_img.shape[:2]  # TODO: could be a fixture
 
-    calib_res_dir = Path("tests/images/cam_calib_charuco_images/calibration_result")
+    calib_res_dir = Path("tests/data/cam_calib_charuco_images/calibration_result")
     calib_res_dir.mkdir(exist_ok=True)
     calib_ans = calibration_answer
 

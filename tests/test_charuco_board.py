@@ -17,7 +17,7 @@ def charuco_board_image() -> cvt.MatLike:
     """
     Fixture to load the charuco board image
     """
-    img = cv2.imread("tests/images/charuco_board.jpg")
+    img = cv2.imread("tests/data/charuco_board.jpg")
     assert img is not None, "charuco_board_image should not be None"
     return img
 
@@ -90,9 +90,9 @@ def test_detect_single_image(
         detection, CharucoBoardDetection
     ), f"detection should be CharucoBoardDetection, got {type(detection)}"
 
-    detection.save_to("tests/images/charuco_board_detection_result.npz")
+    detection.save_to("tests/data/charuco_board_detection_result.npz")
     det_ans = CharucoBoardDetection.load_from(
-        "tests/images/charuco_board_detection_answer.npz"
+        "tests/data/charuco_board_detection_answer.npz"
     )
 
     assert det_ans.aruco_marker_ids.shape == detection.aruco_marker_ids.shape, (
@@ -112,7 +112,7 @@ def test_detect_calibration_images(
     detection_answer_dir: Path,
 ):
     # Arrange
-    result_dir = Path("tests/images/cam_calib_charuco_images/detection_results")
+    result_dir = Path("tests/data/cam_calib_charuco_images/detection_results")
     result_dir.mkdir(exist_ok=True)
 
     answer_dir = detection_answer_dir
