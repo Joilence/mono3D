@@ -12,7 +12,7 @@ def aruco_cube_image() -> cvt.MatLike:
     """
     Fixture to load the charuco board image
     """
-    img = cv2.imread("tests/images/aruco_cube.jpg")
+    img = cv2.imread("tests/data/aruco_cube.jpg")
     assert img is not None, "aruco_cube_image should not be None"
     return img
 
