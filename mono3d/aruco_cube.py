@@ -28,6 +28,12 @@ class ArucoDetection:
     corners: Sequence[cvt.MatLike]
     ids: cvt.MatLike
 
+    def __len__(self):
+        assert len(self.corners) == len(
+            self.ids
+        ), "corners and ids should have same length, detection possibly corrupted."
+        return len(self.ids)
+
 
 class ArucoCube:
     """
