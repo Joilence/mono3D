@@ -1,5 +1,6 @@
 """ class to build a 3D coordinate system from a cube with ArUco markers """
 
+import functools
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Sequence
@@ -11,6 +12,7 @@ from cv2 import aruco
 from tqdm.auto import tqdm
 
 from mono3d import CameraParameter
+from mono3d.util import process_video
 
 
 @dataclass
@@ -206,7 +208,7 @@ class ArucoCube:
             length=self.marker_length,
         )
 
-    def draw(
+    def plot_on_image(
         self,
         image: cvt.MatLike,
         cam_param: Optional[CameraParameter] = None,
@@ -257,6 +259,30 @@ class ArucoCube:
 
         return image
 
+    def plot_on_video(
+        self,
+        src_video_path: Path,
+        cam_param: Optional[CameraParameter] = None,
+        draw_cube_axis: bool = True,
+        draw_markers: bool = False,
+        draw_markers_axes: bool = False,
+        min_markers: int = 1,
+        scale: float = 1.0,
+    ):
+        """Draw the cube axis on a video"""
+        process_video(
+            src_video_path=src_video_path,
+            frame_process_func=functools.partial(
+                self.plot_on_image,
+                cam_param=cam_param,
+                draw_cube_axis=draw_cube_axis,
+                draw_markers=draw_markers,
+                draw_markers_axes=draw_markers_axes,
+                min_markers=min_markers,
+            ),
+            scale=scale,
+        )
+
 
 if __name__ == "__main__":
 
@@ -264,54 +290,19 @@ if __name__ == "__main__":
     test_image = cv2.imread("../tests/images/aruco_cube.jpg")
     cam_param = CameraParameter.load_from("../tests/images/cam_param.npz")
     aruco_cube = ArucoCube()
-
     scale = 0.5
     stream = False
     # visualize the cube axis from a video
-    video_paths = list(test_video_dir.glob("*.MP4"))
+    video_paths = list(test_video_dir.glob("*.MP4"))[:1]
     for vp in tqdm(
         video_paths, desc="Processing videos", bar_format="{l_bar}{bar:10}{r_bar}"
     ):
-        vc = cv2.VideoCapture(str(vp))
-        width = int(vc.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(vc.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(vc.get(cv2.CAP_PROP_FPS))
-        n_frames = int(vc.get(cv2.CAP_PROP_FRAME_COUNT))
-        tqdm.write(f"{vp.name}: {width}x{height} @ {fps} fps, {n_frames} frames")
-
-        if scale != 1:
-            width = int(width * scale)
-            height = int(height * scale)
-            tqdm.write(f"Resizing to {width}x{height}")
-
-        vw = cv2.VideoWriter(
-            str(vp.with_suffix(".axis.mp4")),
-            cv2.VideoWriter.fourcc(*"mp4v"),
-            fps,
-            (width, height),
+        aruco_cube.plot_on_video(
+            src_video_path=vp,
+            cam_param=cam_param,
+            draw_cube_axis=True,
+            draw_markers=False,
+            draw_markers_axes=False,
+            min_markers=1,
+            scale=scale,
         )
-
-        for _ in tqdm(
-            range(n_frames),
-            leave=False,
-            desc=f"Processing {vp.name}",
-            bar_format="{l_bar}{bar:10}{r_bar}",
-        ):
-            ret, frame = vc.read()
-            if not ret:
-                break
-            axis_frame = aruco_cube.draw(
-                frame,
-                cam_param,
-                draw_cube_axis=True,
-                draw_markers=True,
-                draw_markers_axes=False,
-            )
-            # scale image
-            if scale != 1:
-                axis_frame = cv2.resize(axis_frame, (width, height))
-
-            vw.write(axis_frame)
-
-        vc.release()
-        vw.release()
